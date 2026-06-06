@@ -21,6 +21,7 @@ export const STATNAV_JOBS = path.join(STATNAV_ROOT, "jobs");
 export const STATNAV_CONVERSIONS = path.join(STATNAV_ROOT, "conversions");
 export const STATNAV_SCRIPT = path.join(process.cwd(), "scripts", "statnav_backend.py");
 export const STATNAV_R_SCRIPT = path.join(process.cwd(), "scripts", "statnav_r_analysis.R");
+export const PYTHON_EXECUTABLE = process.env.PYTHON_PATH?.trim() || "python3";
 
 export function safeFileName(name: string): string {
   return name
@@ -132,7 +133,7 @@ export async function runStatnavBackend<T>(args: string[]): Promise<T> {
   await ensureStatnavDirs();
 
   return new Promise((resolve, reject) => {
-    const child = spawn("python3", [STATNAV_SCRIPT, ...args], {
+    const child = spawn(PYTHON_EXECUTABLE, [STATNAV_SCRIPT, ...args], {
       cwd: process.cwd(),
       env: {
         ...process.env,
@@ -153,7 +154,21 @@ export async function runStatnavBackend<T>(args: string[]): Promise<T> {
       stderr += chunk.toString();
     });
 
-    child.on("error", reject);
+    child.on("error", (error: NodeJS.ErrnoException) => {
+      if (error.code === "ENOENT") {
+        const configuredPath = process.env.PYTHON_PATH?.trim();
+        reject(
+          new Error(
+            configuredPath
+              ? `Python could not be found at PYTHON_PATH="${configuredPath}". Please check that this file exists and is executable.`
+              : "Python could not be found. Set PYTHON_PATH to your Python executable path, for example PYTHON_PATH=/Library/Frameworks/Python.framework/Versions/3.11/bin/python3, or make python3 available in PATH."
+          )
+        );
+        return;
+      }
+
+      reject(error);
+    });
     child.on("close", (code) => {
       if (code !== 0) {
         reject(new Error(stderr || stdout || `Statistics Navigator backend exited with code ${code}.`));

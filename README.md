@@ -12,6 +12,15 @@ python3 -m pip install -r requirements.txt
 npm run dev
 ```
 
+If your shell can find Python but the app shows `spawn python3 ENOENT`, set the
+Python executable explicitly in `.env.local`:
+
+```bash
+PYTHON_PATH=/Library/Frameworks/Python.framework/Versions/3.11/bin/python3
+```
+
+Restart `npm run dev` after changing `.env.local`.
+
 Open:
 
 ```text
@@ -59,6 +68,9 @@ Python backend expects:
 - `matplotlib`
 - `seaborn`
 
+The Next.js API route uses `PYTHON_PATH` when it is set. If `PYTHON_PATH` is not
+set, it falls back to `python3`.
+
 Excel upload supports modern `.xlsx` workbooks through `openpyxl`. Legacy `.xls`
 files should be saved/exported as `.xlsx` or CSV before upload.
 
@@ -68,6 +80,14 @@ R backend expects:
 - `lmerTest`
 - `emmeans`
 - `openxlsx`
+
+## Deployment Note
+
+Vercel supports Python as a dedicated Vercel Functions runtime, but this MVP
+currently runs Python by spawning a local executable from a Node.js API route.
+That is suitable for local development and a traditional server, but for a
+reliable Vercel deployment the Python/R analysis work should be moved to a
+separate backend/API or rewritten as Python Vercel Functions.
 
 ## Documentation
 

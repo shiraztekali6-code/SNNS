@@ -19,6 +19,13 @@ python3 -m pip install -r requirements.txt
 npm run dev
 ```
 
+If the app reports `spawn python3 ENOENT`, create `.env.local` with the full
+Python executable path and restart the dev server:
+
+```bash
+PYTHON_PATH=/Library/Frameworks/Python.framework/Versions/3.11/bin/python3
+```
+
 Next.js will use `http://localhost:3000` if available. In the current workspace, port 3000 was occupied, so the dev server used:
 
 ```text
@@ -44,6 +51,10 @@ Python packages used by `scripts/statnav_backend.py`:
 - `matplotlib`
 - `seaborn`
 
+The Node API launcher uses `PYTHON_PATH` when set and falls back to `python3`
+otherwise. This avoids relying on the web app process inheriting the same PATH
+as an interactive Terminal shell.
+
 R packages used by `scripts/statnav_r_analysis.R`:
 
 - `lme4`
@@ -54,6 +65,15 @@ R packages used by `scripts/statnav_r_analysis.R`:
 The current machine already has these available for the tested MVP paths.
 Excel upload supports modern `.xlsx` files. Legacy `.xls` workbooks should be
 saved/exported as `.xlsx` or CSV before upload.
+
+## Deployment Caveat
+
+Vercel supports Python as its own Vercel Functions runtime. The current MVP,
+however, uses a Node.js API route that spawns Python/R helper scripts. That
+mixed local-process architecture is best treated as local/traditional-server
+MVP behavior. For the live Vercel app, the production-safe path is to move
+profiling/analysis into Python Vercel Functions or a separate FastAPI/R backend
+and have the Next.js frontend call that API.
 
 ## Example Dataset
 
