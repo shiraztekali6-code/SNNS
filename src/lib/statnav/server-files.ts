@@ -23,6 +23,24 @@ export const STATNAV_SCRIPT = path.join(process.cwd(), "scripts", "statnav_backe
 export const STATNAV_R_SCRIPT = path.join(process.cwd(), "scripts", "statnav_r_analysis.R");
 export const PYTHON_EXECUTABLE = process.env.PYTHON_PATH?.trim() || "python3";
 
+function pythonNotFoundMessage(): string {
+  const configuredPath = process.env.PYTHON_PATH?.trim();
+
+  if (configuredPath) {
+    return `Python could not be found at PYTHON_PATH="${configuredPath}". Please check that this file exists and is executable.`;
+  }
+
+  if (process.env.VERCEL) {
+    return [
+      "Python could not be found in this Vercel Node.js function.",
+      "This MVP currently runs the statistics backend by spawning a local Python executable from a Next.js API route, which is not reliable on Vercel.",
+      "For the live site, move the Python/R backend to Python Vercel Functions or to a separate backend API. For local development, set PYTHON_PATH to your Python executable path."
+    ].join(" ");
+  }
+
+  return "Python could not be found. Set PYTHON_PATH to your Python executable path, for example PYTHON_PATH=/Library/Frameworks/Python.framework/Versions/3.11/bin/python3, or make python3 available in PATH.";
+}
+
 export function safeFileName(name: string): string {
   return name
     .normalize("NFKD")
@@ -156,14 +174,7 @@ export async function runStatnavBackend<T>(args: string[]): Promise<T> {
 
     child.on("error", (error: NodeJS.ErrnoException) => {
       if (error.code === "ENOENT") {
-        const configuredPath = process.env.PYTHON_PATH?.trim();
-        reject(
-          new Error(
-            configuredPath
-              ? `Python could not be found at PYTHON_PATH="${configuredPath}". Please check that this file exists and is executable.`
-              : "Python could not be found. Set PYTHON_PATH to your Python executable path, for example PYTHON_PATH=/Library/Frameworks/Python.framework/Versions/3.11/bin/python3, or make python3 available in PATH."
-          )
-        );
+        reject(new Error(pythonNotFoundMessage()));
         return;
       }
 
