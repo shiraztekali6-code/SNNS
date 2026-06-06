@@ -125,15 +125,36 @@ if (length(missing_packages) > 0) {
 }
 invisible(lapply(required_packages, library, character.only = TRUE))
 
-# Change this path to your uploaded/prepared data file.
-data_path <- "YOUR_DATA_FILE.csv"
+# ---- 2. Choose your data table ----
+# Option A, easiest in RStudio: leave data_path blank and select your CSV/XLS/XLSX file
+# when the file picker opens.
+# Option B: paste the full path between the quotes, for example:
+# data_path <- "/Users/your-name/Desktop/my_table.xlsx"
+data_path <- ""
+
+if (identical(data_path, "") && interactive()) {
+  message("Choose your CSV/XLS/XLSX data table.")
+  data_path <- file.choose()
+}
+
+if (identical(data_path, "")) {
+  stop("No data table selected. Paste a file path into data_path, or run this script interactively in RStudio and choose a file.")
+}
+
+if (!file.exists(data_path)) {
+  stop("The selected data file was not found: ", data_path)
+}
+
 output_dir <- "statnav_r_outputs"
 dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
-if (grepl("\\\\.xlsx$", data_path, ignore.case = TRUE)) {
+file_extension <- tolower(tools::file_ext(data_path))
+if (file_extension %in% c("xlsx", "xls")) {
   raw_data <- readxl::read_excel(data_path)
-} else {
+} else if (file_extension == "csv") {
   raw_data <- readr::read_csv(data_path, show_col_types = FALSE)
+} else {
+  stop("Unsupported file type: .", file_extension, ". Please choose a CSV, XLS, or XLSX file.")
 }
 
 data <- as.data.frame(raw_data)
@@ -158,7 +179,7 @@ function coercionBlock(input: RCodeInput): string {
   const secondFactor = recommendation.id === "two-way-anova" ? inferSecondFactor(profile, design, graphSpec) : undefined;
 
   const lines = [
-    "# ---- 2. Column preparation ----",
+    "# ---- 3. Column preparation ----",
     `analysis_data[[${rString(outcome)}]] <- as.numeric(analysis_data[[${rString(outcome)}]])`,
     group && `analysis_data[[${rString(group)}]] <- as.factor(analysis_data[[${rString(group)}]])`,
     subject && `analysis_data[[${rString(subject)}]] <- as.factor(analysis_data[[${rString(subject)}]])`,
@@ -189,7 +210,7 @@ function analysisBlock(input: RCodeInput): string {
   const formula = recommendedFormula(input);
 
   if (recommendation.id === "linear-mixed-effects-model") {
-    return `# ---- 3. Recommended analysis: ${recommendation.recommendedAnalysis} ----
+    return `# ---- 4. Recommended analysis: ${recommendation.recommendedAnalysis} ----
 model_formula <- stats::as.formula(${rString(formula)})
 model <- lmerTest::lmer(model_formula, data = analysis_data)
 
@@ -217,7 +238,7 @@ if (${rString(group)} %in% names(analysis_data) && is.numeric(analysis_data[[${r
 
   if (recommendation.id === "paired-t-test" || recommendation.id === "wilcoxon-matched-pairs") {
     const testFunction = recommendation.id === "wilcoxon-matched-pairs" ? "stats::wilcox.test" : "stats::t.test";
-    return `# ---- 3. Recommended analysis: ${recommendation.recommendedAnalysis} ----
+    return `# ---- 4. Recommended analysis: ${recommendation.recommendedAnalysis} ----
 wide_data <- stats::reshape(
   analysis_data[, c(${rString(subject)}, ${rString(group)}, ${rString(outcome)})],
   idvar = ${rString(subject)},
@@ -238,7 +259,7 @@ print(test_result)
   if (recommendation.id === "unpaired-t-test" || recommendation.id === "mann-whitney") {
     const testFunction = recommendation.id === "mann-whitney" ? "stats::wilcox.test" : "stats::t.test";
     const extraArg = recommendation.id === "unpaired-t-test" ? ", var.equal = FALSE" : "";
-    return `# ---- 3. Recommended analysis: ${recommendation.recommendedAnalysis} ----
+    return `# ---- 4. Recommended analysis: ${recommendation.recommendedAnalysis} ----
 test_formula <- stats::as.formula(${rString(formula)})
 test_result <- ${testFunction}(test_formula, data = analysis_data${extraArg})
 result_table <- broom::tidy(test_result)
@@ -251,7 +272,7 @@ print(test_result)
     const emmeansSpec = recommendation.id === "two-way-anova"
       ? `stats::as.formula(paste("pairwise ~", ${rString(group)}, "|", ${rString(inferSecondFactor(profile, design, graphSpec) ?? "YOUR_SECOND_FACTOR_COLUMN")}))`
       : `stats::as.formula(paste("pairwise ~", ${rString(group)}))`;
-    return `# ---- 3. Recommended analysis: ${recommendation.recommendedAnalysis} ----
+    return `# ---- 4. Recommended analysis: ${recommendation.recommendedAnalysis} ----
 model_formula <- stats::as.formula(${rString(formula)})
 model <- stats::aov(model_formula, data = analysis_data)
 anova_table <- broom::tidy(model)
@@ -264,7 +285,7 @@ print(summary(model))
   }
 
   if (recommendation.id === "linear-regression") {
-    return `# ---- 3. Recommended analysis: ${recommendation.recommendedAnalysis} ----
+    return `# ---- 4. Recommended analysis: ${recommendation.recommendedAnalysis} ----
 analysis_data[[${rString(predictor)}]] <- as.numeric(analysis_data[[${rString(predictor)}]])
 model_formula <- stats::as.formula(${rString(formula)})
 model <- stats::lm(model_formula, data = analysis_data)
@@ -277,7 +298,7 @@ print(summary(model))
   }
 
   if (recommendation.id === "kruskal-wallis") {
-    return `# ---- 3. Recommended analysis: ${recommendation.recommendedAnalysis} ----
+    return `# ---- 4. Recommended analysis: ${recommendation.recommendedAnalysis} ----
 test_formula <- stats::as.formula(${rString(formula)})
 test_result <- stats::kruskal.test(test_formula, data = analysis_data)
 result_table <- broom::tidy(test_result)
@@ -287,7 +308,7 @@ print(test_result)
   }
 
   if (recommendation.id === "fisher-or-chi-square" || recommendation.id === "chi-square") {
-    return `# ---- 3. Recommended analysis: ${recommendation.recommendedAnalysis} ----
+    return `# ---- 4. Recommended analysis: ${recommendation.recommendedAnalysis} ----
 contingency_table <- table(analysis_data[[${rString(group)}]], analysis_data[[${rString(outcome)}]])
 expected_counts <- suppressWarnings(stats::chisq.test(contingency_table)$expected)
 test_result <- if (all(dim(contingency_table) == c(2, 2)) || any(expected_counts < 5)) {
@@ -302,7 +323,7 @@ print(test_result)
 `;
   }
 
-  return `# ---- 3. Recommended analysis: review needed ----
+  return `# ---- 4. Recommended analysis: review needed ----
 # The current recommendation is: ${recommendation.recommendedAnalysis}
 # This design needs manual review before running a final inferential model.
 message("Review the recommendation and fill in the appropriate R model/test manually.")
@@ -327,7 +348,7 @@ function graphBlock(input: RCodeInput): string {
   if (graphType === "line_mean_sem" || graphType === "longitudinal_line") {
     const groupVars = unique([xAxis, colorBy, ...facetBy]);
     return `
-# ---- 4. Requested graph: ${describeGraphType(graphType)} ----
+# ---- 5. Requested graph: ${describeGraphType(graphType)} ----
 x_axis <- ${rString(xAxis)}
 y_axis <- ${rString(yAxis)}
 color_by <- ${colorBy ? rString(colorBy) : "NULL"}
@@ -364,7 +385,7 @@ print(p)
 
   if (graphType === "scatter_regression" || graphType === "trendline") {
     return `
-# ---- 4. Requested graph: ${describeGraphType(graphType)} ----
+# ---- 5. Requested graph: ${describeGraphType(graphType)} ----
 x_axis <- ${rString(xAxis)}
 y_axis <- ${rString(yAxis)}
 color_by <- ${colorBy ? rString(colorBy) : "NULL"}
@@ -381,7 +402,7 @@ print(p)
   if (graphType === "paired_before_after") {
     const subject = design.subjectIdColumn ?? "YOUR_SUBJECT_ID_COLUMN";
     return `
-# ---- 4. Requested graph: ${describeGraphType(graphType)} ----
+# ---- 5. Requested graph: ${describeGraphType(graphType)} ----
 x_axis <- ${rString(xAxis)}
 y_axis <- ${rString(yAxis)}
 subject_id <- ${rString(subject)}
@@ -398,7 +419,7 @@ print(p)
 
   if (graphType === "categorical_bar") {
     return `
-# ---- 4. Requested graph: ${describeGraphType(graphType)} ----
+# ---- 5. Requested graph: ${describeGraphType(graphType)} ----
 x_axis <- ${rString(xAxis)}
 y_axis <- ${rString(yAxis)}
 p <- ggplot2::ggplot(analysis_data, ggplot2::aes(x = .data[[x_axis]], fill = .data[[y_axis]])) +
@@ -421,7 +442,7 @@ print(p)
     : "";
 
   return `
-# ---- 4. Requested graph: ${describeGraphType(graphType)} ----
+# ---- 5. Requested graph: ${describeGraphType(graphType)} ----
 x_axis <- ${rString(xAxis)}
 y_axis <- ${rString(yAxis)}
 color_by <- ${colorBy ? rString(colorBy) : "NULL"}
@@ -447,7 +468,7 @@ function textOutputBlock(input: RCodeInput): string {
     "Example: The model/test indicated [describe direction], statistic = [value], p = [value]."
   ].filter(Boolean).join(" ");
 
-  const lines = ["# ---- 5. Draft report text ----"];
+  const lines = ["# ---- 6. Draft report text ----"];
   if (outputSelected(selectedOutputs, "methods_sentence")) {
     lines.push(`methods_text <- ${rString(methods)}`);
     lines.push("writeLines(methods_text, file.path(output_dir, \"methods_text.txt\"))");

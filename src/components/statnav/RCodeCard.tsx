@@ -55,7 +55,7 @@ export function RCodeCard({
           <p className="statnav-kicker">R code</p>
           <h2>Generate an R script for this analysis</h2>
           <p>
-            This creates editable R code for the recommended analysis and the outputs you requested. Review the code and column choices before using it for final reporting.
+            This creates editable R code with a table file picker, the recommended analysis, and the outputs you requested. Review the code and column choices before using it for final reporting.
           </p>
         </div>
         <button className="statnav-button primary" onClick={generateCode} type="button">
@@ -84,7 +84,7 @@ export function RCodeCard({
         </>
       ) : (
         <p className="statnav-inline-warning">
-          The script uses your uploaded table columns, the rule-based recommendation, and the graph plan. It does not silently change the statistical decision.
+          The script starts by letting you choose a CSV/XLS/XLSX table, then uses your uploaded table columns, the rule-based recommendation, and the graph plan. It does not silently change the statistical decision.
         </p>
       )}
     </section>
