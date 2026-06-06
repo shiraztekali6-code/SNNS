@@ -10,6 +10,7 @@ import { GraphClarificationCard } from "./GraphClarificationCard";
 import { GraphPlanCard } from "./GraphPlanCard";
 import { GraphRequestInput } from "./GraphRequestInput";
 import { RecommendationCard } from "./RecommendationCard";
+import { RCodeCard } from "./RCodeCard";
 import { answersFromExperimentDesign, interpretExperimentDescription } from "@/lib/statnav/experiment_interpreter";
 import { applyFollowUpAnswer, getNextFollowUpQuestion } from "@/lib/statnav/followup_question_engine";
 import { applyGraphClarificationAnswer, getNextGraphClarificationQuestion } from "@/lib/statnav/graph_question_engine";
@@ -459,6 +460,15 @@ export function StatNavigatorApp() {
             <div className="statnav-actions">
               <button className="statnav-button ghost" onClick={() => setStep("intake")} type="button">Adjust description or advanced design</button>
             </div>
+            {design ? (
+              <RCodeCard
+                design={design}
+                graphSpec={selectedOutputs.includes("graph") ? graphSpec : null}
+                profile={profile}
+                recommendation={recommendation}
+                selectedOutputs={selectedOutputs}
+              />
+            ) : null}
           </section>
         ) : null}
 
@@ -502,6 +512,15 @@ export function StatNavigatorApp() {
               </section>
             ) : null}
             <ResultTables tables={analysis.tables} />
+            {profile && design && recommendation ? (
+              <RCodeCard
+                design={design}
+                graphSpec={selectedOutputs.includes("graph") ? graphSpec : null}
+                profile={profile}
+                recommendation={recommendation}
+                selectedOutputs={selectedOutputs}
+              />
+            ) : null}
           </section>
         ) : null}
       </main>
