@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path.cwd()
-OUTPUT_ROOT = ROOT / "outputs" / "statnav"
+OUTPUT_ROOT = Path(os.environ.get("STATNAV_OUTPUT_DIR", ROOT / "outputs" / "statnav"))
 os.environ.setdefault("MPLCONFIGDIR", str(OUTPUT_ROOT / ".matplotlib"))
 
 import numpy as np
@@ -90,12 +90,35 @@ def read_table(path: str | Path) -> pd.DataFrame:
         raise FileNotFoundError(f"Input file not found: {file_path}")
 
     suffix = file_path.suffix.lower()
-    if suffix == ".csv":
-        df = pd.read_csv(file_path)
-    elif suffix == ".xlsx":
-        df = pd.read_excel(file_path)
-    else:
-        raise ValueError("Only CSV and XLSX files are supported in the MVP.")
+    try:
+        if suffix == ".csv":
+            df = pd.read_csv(file_path)
+        elif suffix == ".xlsx":
+            df = pd.read_excel(file_path, engine="openpyxl")
+        elif suffix == ".xls":
+            raise ValueError(
+                "Legacy .xls Excel files are not supported yet. Please save/export the workbook as .xlsx or CSV, then upload it again."
+            )
+        else:
+            raise ValueError("Only CSV and modern Excel .xlsx files are supported in the MVP.")
+    except ImportError as exc:
+        if suffix == ".xlsx" and "openpyxl" in str(exc):
+            raise ValueError(
+                "Excel .xlsx upload requires the Python package openpyxl. Install it with `python3 -m pip install openpyxl`, or upload a CSV file."
+            ) from exc
+        raise
+    except ValueError:
+        raise
+    except Exception as exc:
+        if suffix == ".xlsx":
+            raise ValueError(
+                "I could not read this Excel workbook. Please check that it is a normal .xlsx file, not encrypted/corrupted, or save it as CSV and upload again."
+            ) from exc
+        if suffix == ".csv":
+            raise ValueError(
+                "I could not read this CSV file. Please check the delimiter/encoding or save it again as UTF-8 CSV."
+            ) from exc
+        raise
 
     df = df.replace(r"^\s*$", np.nan, regex=True)
     df.columns = [str(column).strip() for column in df.columns]

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import path from "node:path";
 import { NextResponse } from "next/server";
 import type { TableProfile } from "@/lib/statnav/types";
 import { runStatnavBackend, saveUploadedDataset } from "@/lib/statnav/server-files";
@@ -6,6 +7,7 @@ import { runStatnavBackend, saveUploadedDataset } from "@/lib/statnav/server-fil
 export const runtime = "nodejs";
 
 const ACCEPTED_EXTENSIONS = [".csv", ".xlsx"];
+const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 
 export async function POST(request: Request) {
   try {
@@ -16,10 +18,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No file was uploaded." }, { status: 400 });
     }
 
-    const lowerName = file.name.toLowerCase();
-    const isAccepted = ACCEPTED_EXTENSIONS.some((extension) => lowerName.endsWith(extension));
+    if (file.size === 0) {
+      return NextResponse.json({ error: "The uploaded file is empty." }, { status: 400 });
+    }
+
+    if (file.size > MAX_UPLOAD_BYTES) {
+      return NextResponse.json(
+        { error: "This file is larger than the 25 MB MVP upload limit. Please try a smaller CSV/XLSX file." },
+        { status: 400 }
+      );
+    }
+
+    const extension = path.extname(file.name).toLowerCase();
+    if (extension === ".xls") {
+      return NextResponse.json(
+        { error: "Legacy .xls Excel files are not supported yet. Please save/export the workbook as .xlsx or CSV, then upload it again." },
+        { status: 400 }
+      );
+    }
+
+    const isAccepted = ACCEPTED_EXTENSIONS.includes(extension);
     if (!isAccepted) {
-      return NextResponse.json({ error: "Please upload a CSV or XLSX file." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Please upload a CSV or modern Excel .xlsx file." },
+        { status: 400 }
+      );
     }
 
     const datasetId = randomUUID();

@@ -371,6 +371,9 @@ export function StatNavigatorApp() {
             </label>
             <button className="statnav-button secondary" onClick={() => void loadExample()} type="button">Use mouse activity example</button>
           </div>
+          <p className="statnav-upload-hint">
+            Excel upload currently supports modern <strong>.xlsx</strong> files. If your file ends in <strong>.xls</strong>, save it as .xlsx or CSV first.
+          </p>
         </section>
       </header>
 
@@ -380,7 +383,7 @@ export function StatNavigatorApp() {
 
         {step === "start" ? (
           <section className="statnav-grid three">
-            <article className="statnav-card"><span className="statnav-number">1</span><h3>Upload a table</h3><p>CSV or XLSX. I’ll summarize the rows, columns, likely measurements, groups, and IDs.</p></article>
+            <article className="statnav-card"><span className="statnav-number">1</span><h3>Upload a table</h3><p>CSV or modern XLSX. I’ll summarize the rows, columns, likely measurements, groups, and IDs.</p></article>
             <article className="statnav-card"><span className="statnav-number">2</span><h3>Describe the experiment</h3><p>Use ordinary language. No need to know words like paired, interaction, or non-parametric.</p></article>
             <article className="statnav-card"><span className="statnav-number">3</span><h3>Answer one detail</h3><p>If something matters for independence, I’ll ask one targeted question before recommending a model.</p></article>
           </section>

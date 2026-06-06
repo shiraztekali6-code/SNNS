@@ -15,6 +15,7 @@ This MVP lives at `/statistics-navigator`. It is intentionally not a blind AI te
 
 ```bash
 npm install
+python3 -m pip install -r requirements.txt
 npm run dev
 ```
 
@@ -51,6 +52,8 @@ R packages used by `scripts/statnav_r_analysis.R`:
 - `openxlsx`
 
 The current machine already has these available for the tested MVP paths.
+Excel upload supports modern `.xlsx` files. Legacy `.xls` workbooks should be
+saved/exported as `.xlsx` or CSV before upload.
 
 ## Example Dataset
 

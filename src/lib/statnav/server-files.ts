@@ -1,8 +1,21 @@
 import { spawn } from "node:child_process";
 import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
 
-export const STATNAV_ROOT = path.join(process.cwd(), "outputs", "statnav");
+function defaultRuntimeRoot(): string {
+  if (process.env.STATNAV_OUTPUT_DIR) {
+    return process.env.STATNAV_OUTPUT_DIR;
+  }
+
+  if (process.env.VERCEL) {
+    return path.join(tmpdir(), "statnav");
+  }
+
+  return path.join(process.cwd(), "outputs", "statnav");
+}
+
+export const STATNAV_ROOT = path.resolve(defaultRuntimeRoot());
 export const STATNAV_UPLOADS = path.join(STATNAV_ROOT, "uploads");
 export const STATNAV_JOBS = path.join(STATNAV_ROOT, "jobs");
 export const STATNAV_CONVERSIONS = path.join(STATNAV_ROOT, "conversions");
@@ -123,6 +136,7 @@ export async function runStatnavBackend<T>(args: string[]): Promise<T> {
       cwd: process.cwd(),
       env: {
         ...process.env,
+        STATNAV_OUTPUT_DIR: STATNAV_ROOT,
         MPLCONFIGDIR: path.join(STATNAV_ROOT, ".matplotlib")
       },
       stdio: ["ignore", "pipe", "pipe"]

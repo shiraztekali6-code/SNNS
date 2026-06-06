@@ -1631,6 +1631,18 @@ html[dir="rtl"] .hero-impact {
   color: var(--sn-danger);
 }
 
+.statnav-upload-hint {
+  max-width: 720px;
+  margin-top: 0.75rem;
+  color: var(--sn-muted);
+  font-size: 0.92rem;
+}
+
+.statnav-upload-hint strong {
+  color: var(--sn-blue);
+  font-weight: 950;
+}
+
 .statnav-warning-box {
   border-radius: 24px;
   padding: 1.1rem;

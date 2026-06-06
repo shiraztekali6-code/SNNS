@@ -8,6 +8,7 @@ A Next.js MVP for researchers and students who do not feel confident choosing st
 
 ```bash
 npm install
+python3 -m pip install -r requirements.txt
 npm run dev
 ```
 
@@ -57,6 +58,9 @@ Python backend expects:
 - `scipy`
 - `matplotlib`
 - `seaborn`
+
+Excel upload supports modern `.xlsx` workbooks through `openpyxl`. Legacy `.xls`
+files should be saved/exported as `.xlsx` or CSV before upload.
 
 R backend expects:
 
