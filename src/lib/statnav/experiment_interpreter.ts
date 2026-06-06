@@ -1,5 +1,6 @@
 import type {
   AssistantInterpretation,
+  DesiredOutput,
   ExperimentDesign,
   QuestionnaireAnswers,
   ResearchGoal,
@@ -169,7 +170,10 @@ export function interpretExperimentDescription(
   };
 }
 
-export function answersFromExperimentDesign(design: ExperimentDesign): QuestionnaireAnswers {
+export function answersFromExperimentDesign(
+  design: ExperimentDesign,
+  desiredOutputs: DesiredOutput[] = ["p_value", "graph", "model_summary", "formatted_table", "methods_sentence", "results_sentence"]
+): QuestionnaireAnswers {
   const hasRepeatedUnit = Boolean(design.subjectIdColumn && design.timeColumn);
   return {
     outcomeColumn: design.measurementColumn,
@@ -180,7 +184,7 @@ export function answersFromExperimentDesign(design: ExperimentDesign): Questionn
     pairedDesign: hasRepeatedUnit ? "paired" : "independent",
     replicateType: design.replicateType ?? "unknown",
     researchGoal: design.researchGoal,
-    desiredOutputs: ["p_value", "graph", "model_summary", "formatted_table", "methods_sentence", "results_sentence"],
+    desiredOutputs,
     assumeNormalEnough: "unsure",
     preferNonParametric: false,
     notes: design.userQuestion

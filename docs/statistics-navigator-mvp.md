@@ -118,7 +118,9 @@ The app explains that:
 3. In the chat box, describe the experiment in normal lab language.
 4. Review the assistant interpretation card.
 5. Answer one follow-up question if the design is still unsafe to recommend.
-6. Review the recommendation card and run the analysis if supported.
+6. Choose desired outputs. If `Graph` is selected, describe the graph you want in plain language.
+7. Review the graph plan and answer one graph-specific clarification if needed.
+8. Review the recommendation card and run the analysis if supported.
 
 Example description:
 
@@ -141,6 +143,64 @@ movement_mean_per_12h ~ group * session_number + (1 | cage_id)
 
 If the user selects technical splits, the app recommends combining technical replicates first before treatment testing.
 
+## Graph-Request Flow
+
+When `Graph` is selected in the output checkboxes, the app shows a graph request input:
+
+```text
+I want a line graph of movement over time, with one line per treatment group and SEM error bars.
+```
+
+The graph interpreter uses:
+
+- Uploaded table profile
+- Current experiment design
+- Selected measurement/group/time/sample columns
+- User graph request text
+
+It builds a structured graph spec with:
+
+- Graph type
+- X-axis
+- Y-axis
+- Color/grouping
+- Faceting/panels
+- Separate subsets
+- Individual points
+- Error bars and error-bar type
+- Trendline
+- Notes and red flags
+
+Example:
+
+```text
+I want one graph for males and one for females, and within each graph I want separate lines for MIX, R837, and RU521 over time with SEM error bars. Also split Day and Night.
+```
+
+Expected graph plan:
+
+- Graph type: mean +/- SEM line graph
+- X-axis: `session_number`
+- Y-axis: `movement_mean_per_12h`
+- Color/grouping: `group`
+- Faceting/panels: `sex`
+- Separate subsets: `day_night`
+- Error bars: SEM
+
+Supported MVP graph types:
+
+- Longitudinal line graph
+- Mean +/- SEM line graph
+- Trendline graph
+- Boxplot + points
+- Violin plot + points
+- Bar plot + points
+- Paired before/after plot
+- Scatter plot + regression line
+- Contingency/categorical bar plot
+
+If the graph request is ambiguous, `src/lib/statnav/graph_question_engine.ts` asks one targeted follow-up question, such as whether to show individual points or whether to split by day/night.
+
 ## Rule-Based vs Assistant-Like Parts
 
 Rule-based:
@@ -148,6 +208,9 @@ Rule-based:
 - `scripts/statnav_backend.py` table profiling, conversion, graphing, and Python-side tests.
 - `scripts/statnav_r_analysis.R` ANOVA and mixed-effects model execution.
 - `src/lib/statnav/followup_question_engine.ts` targeted missing-question logic.
+- `src/lib/statnav/graph_request_interpreter.ts` deterministic graph-request parsing.
+- `src/lib/statnav/graph_question_engine.ts` targeted graph clarification questions.
+- `src/lib/statnav/graph_spec_builder.ts` default graph plan construction.
 - `src/lib/statnav/statistical_decision_engine.ts` final recommendation guardrails, including technical replicate handling.
 - `src/lib/statnav/recommendation-engine.ts` statistical recommendation rules.
 

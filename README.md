@@ -39,6 +39,12 @@ Suggested chat prompt:
 I measured mouse movement every 12 hours in MIX, R837, and RU521 groups. Each group has two cages. I want to know if the treatment changed movement over time.
 ```
 
+Suggested graph prompt:
+
+```text
+I want one graph for males and one for females, with separate lines for MIX, R837, and RU521 over time and SEM error bars.
+```
+
 ## Dependencies
 
 Node dependencies are in `package.json`.

@@ -151,6 +151,48 @@ export type FollowUpQuestion = {
   }>;
 };
 
+export type GraphType =
+  | "longitudinal_line"
+  | "line_mean_sem"
+  | "trendline"
+  | "boxplot_points"
+  | "violin_points"
+  | "bar_points"
+  | "paired_before_after"
+  | "scatter_regression"
+  | "categorical_bar"
+  | "unsure";
+
+export type ErrorBarType = "SEM" | "CI" | "SD" | "none" | "unsure";
+
+export type GraphSpec = {
+  graphRequested: boolean;
+  graphRequestText: string;
+  graphType: GraphType;
+  xAxis?: string;
+  yAxis?: string;
+  colorBy?: string;
+  facetBy: string[];
+  splitBy: string[];
+  showIndividualPoints: boolean;
+  showErrorBars: boolean;
+  errorBarType: ErrorBarType;
+  showTrendline: boolean;
+  notes: string[];
+  confidence: "high" | "medium" | "low";
+};
+
+export type GraphClarificationQuestion = {
+  id: string;
+  question: string;
+  whyItMatters: string;
+  options: Array<{
+    label: string;
+    value: string;
+    effect: Partial<GraphSpec>;
+  }>;
+};
+
 export type RecommendationEngineInput = {
   profile: TableProfile;
   answers: QuestionnaireAnswers;

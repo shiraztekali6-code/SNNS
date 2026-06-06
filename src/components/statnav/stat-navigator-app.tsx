@@ -6,16 +6,25 @@ import { AssistantInterpretationCard } from "./AssistantInterpretationCard";
 import { ChatExperimentIntake } from "./ChatExperimentIntake";
 import { DataProfileSummary } from "./DataProfileSummary";
 import { FollowUpQuestionCard } from "./FollowUpQuestionCard";
+import { GraphClarificationCard } from "./GraphClarificationCard";
+import { GraphPlanCard } from "./GraphPlanCard";
+import { GraphRequestInput } from "./GraphRequestInput";
 import { RecommendationCard } from "./RecommendationCard";
 import { answersFromExperimentDesign, interpretExperimentDescription } from "@/lib/statnav/experiment_interpreter";
 import { applyFollowUpAnswer, getNextFollowUpQuestion } from "@/lib/statnav/followup_question_engine";
+import { applyGraphClarificationAnswer, getNextGraphClarificationQuestion } from "@/lib/statnav/graph_question_engine";
+import { interpretGraphRequest } from "@/lib/statnav/graph_request_interpreter";
+import { buildDefaultGraphSpec } from "@/lib/statnav/graph_spec_builder";
 import { decideFromExperimentDesign } from "@/lib/statnav/statistical_decision_engine";
 import type {
   AnalysisResult,
   AssistantInterpretation,
   ConversionResult,
+  DesiredOutput,
   ExperimentDesign,
   FollowUpQuestion,
+  GraphClarificationQuestion,
+  GraphSpec,
   StatRecommendation,
   TableProfile
 } from "@/lib/statnav/types";
@@ -23,6 +32,15 @@ import type {
 type Step = "start" | "intake" | "recommendation" | "results";
 
 type ApiError = { error?: string };
+
+const OUTPUT_OPTIONS: Array<{ value: DesiredOutput; label: string }> = [
+  { value: "p_value", label: "p-value" },
+  { value: "graph", label: "Graph" },
+  { value: "model_summary", label: "Model summary" },
+  { value: "formatted_table", label: "Formatted table" },
+  { value: "methods_sentence", label: "Methods sentence" },
+  { value: "results_sentence", label: "Results sentence" }
+];
 
 function apiJson<T>(url: string, init?: RequestInit): Promise<T> {
   return fetch(url, init).then(async (response) => {
@@ -125,6 +143,33 @@ function ResultTables({ tables }: { tables: AnalysisResult["tables"] }) {
   );
 }
 
+function OutputSelectionCard({
+  selectedOutputs,
+  onToggle
+}: {
+  selectedOutputs: DesiredOutput[];
+  onToggle: (value: DesiredOutput, checked: boolean) => void;
+}) {
+  return (
+    <section className="statnav-card statnav-output-card">
+      <p className="statnav-kicker">Outputs</p>
+      <h2>What output do you want?</h2>
+      <div className="statnav-checkbox-grid">
+        {OUTPUT_OPTIONS.map((option) => (
+          <label key={option.value}>
+            <input
+              checked={selectedOutputs.includes(option.value)}
+              onChange={(event) => onToggle(option.value, event.target.checked)}
+              type="checkbox"
+            />
+            {option.label}
+          </label>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function StatNavigatorApp() {
   const [step, setStep] = useState<Step>("start");
   const [profile, setProfile] = useState<TableProfile | null>(null);
@@ -134,6 +179,16 @@ export function StatNavigatorApp() {
   const [recommendation, setRecommendation] = useState<StatRecommendation | null>(null);
   const [conversion, setConversion] = useState<ConversionResult | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const [selectedOutputs, setSelectedOutputs] = useState<DesiredOutput[]>([
+    "p_value",
+    "graph",
+    "model_summary",
+    "formatted_table",
+    "methods_sentence",
+    "results_sentence"
+  ]);
+  const [graphSpec, setGraphSpec] = useState<GraphSpec | null>(null);
+  const [graphClarificationQuestion, setGraphClarificationQuestion] = useState<GraphClarificationQuestion | null>(null);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
 
@@ -145,6 +200,8 @@ export function StatNavigatorApp() {
     setRecommendation(null);
     setAnalysis(null);
     setConversion(null);
+    setGraphSpec(null);
+    setGraphClarificationQuestion(null);
     setStep("intake");
   }
 
@@ -182,6 +239,9 @@ export function StatNavigatorApp() {
     setRecommendation(nextRecommendation);
     setConversion(null);
     setAnalysis(null);
+    if (selectedOutputs.includes("graph") && !graphSpec) {
+      setGraphSpec(buildDefaultGraphSpec(profile, nextDesign));
+    }
     setStep("recommendation");
   }
 
@@ -193,6 +253,10 @@ export function StatNavigatorApp() {
     const nextQuestion = getNextFollowUpQuestion(profile, result.design);
     setFollowUpQuestion(nextQuestion);
     setRecommendation(null);
+    if (selectedOutputs.includes("graph") && graphSpec) {
+      const nextGraphQuestion = getNextGraphClarificationQuestion(profile, result.design, graphSpec);
+      setGraphClarificationQuestion(nextGraphQuestion);
+    }
     if (!nextQuestion) recommendWithDesign(result.design);
   }
 
@@ -201,7 +265,42 @@ export function StatNavigatorApp() {
     const nextDesign = applyFollowUpAnswer(design, followUpQuestion, value);
     setDesign(nextDesign);
     setFollowUpQuestion(null);
+    if (graphSpec) {
+      setGraphClarificationQuestion(getNextGraphClarificationQuestion(profile, nextDesign, graphSpec));
+    }
     recommendWithDesign(nextDesign);
+  }
+
+  function toggleOutput(output: DesiredOutput, checked: boolean) {
+    setSelectedOutputs((current) => {
+      const next = checked ? Array.from(new Set([...current, output])) : current.filter((item) => item !== output);
+      if (output === "graph" && !checked) {
+        setGraphSpec(null);
+        setGraphClarificationQuestion(null);
+      }
+      return next;
+    });
+  }
+
+  function handleGraphRequest(text: string) {
+    if (!profile) return;
+    const nextSpec = interpretGraphRequest(profile, design, text);
+    setGraphSpec(nextSpec);
+    setGraphClarificationQuestion(getNextGraphClarificationQuestion(profile, design, nextSpec));
+  }
+
+  function generateDefaultGraphSpec() {
+    if (!profile) return;
+    const nextSpec = buildDefaultGraphSpec(profile, design);
+    setGraphSpec(nextSpec);
+    setGraphClarificationQuestion(getNextGraphClarificationQuestion(profile, design, nextSpec));
+  }
+
+  function answerGraphClarification(value: string) {
+    if (!graphSpec || !graphClarificationQuestion) return;
+    const nextSpec = applyGraphClarificationAnswer(graphSpec, graphClarificationQuestion, value);
+    setGraphSpec(nextSpec);
+    setGraphClarificationQuestion(null);
   }
 
   async function convertTable() {
@@ -213,7 +312,7 @@ export function StatNavigatorApp() {
       const payload = await apiJson<{ result: ConversionResult }>("/api/statnav/convert", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ datasetId: profile.datasetId, profile, answers: answersFromExperimentDesign(design), direction })
+        body: JSON.stringify({ datasetId: profile.datasetId, profile, answers: answersFromExperimentDesign(design, selectedOutputs), direction })
       });
       setConversion(payload.result);
     } catch (err) {
@@ -231,7 +330,7 @@ export function StatNavigatorApp() {
       const payload = await apiJson<{ result: AnalysisResult }>("/api/statnav/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ datasetId: profile.datasetId, profile, answers: answersFromExperimentDesign(design) })
+        body: JSON.stringify({ datasetId: profile.datasetId, profile, answers: answersFromExperimentDesign(design, selectedOutputs) })
       });
       setAnalysis(payload.result);
       setStep("results");
@@ -293,6 +392,20 @@ export function StatNavigatorApp() {
             <ChatExperimentIntake disabled={Boolean(status)} onSubmit={handleExperimentDescription} />
             {interpretation ? <AssistantInterpretationCard interpretation={interpretation} /> : null}
             {followUpQuestion ? <FollowUpQuestionCard question={followUpQuestion} onAnswer={answerFollowUp} /> : null}
+            <OutputSelectionCard selectedOutputs={selectedOutputs} onToggle={toggleOutput} />
+            {selectedOutputs.includes("graph") ? (
+              <>
+                <GraphRequestInput
+                  disabled={Boolean(status)}
+                  onGenerateDefault={generateDefaultGraphSpec}
+                  onSubmit={handleGraphRequest}
+                />
+                {graphSpec ? <GraphPlanCard spec={graphSpec} /> : null}
+                {graphClarificationQuestion ? (
+                  <GraphClarificationCard question={graphClarificationQuestion} onAnswer={answerGraphClarification} />
+                ) : null}
+              </>
+            ) : null}
             {design && !followUpQuestion ? (
               <div className="statnav-actions end">
                 <button className="statnav-button primary" onClick={() => recommendWithDesign(design)} type="button">
@@ -323,6 +436,16 @@ export function StatNavigatorApp() {
         {step === "recommendation" && profile && recommendation ? (
           <section className="statnav-section">
             {interpretation ? <AssistantInterpretationCard interpretation={interpretation} /> : null}
+            {selectedOutputs.includes("graph") && graphSpec ? (
+              <section className="statnav-card statnav-planned-graphs-card">
+                <p className="statnav-kicker">Planned Graphs</p>
+                <h2>What the graph will show</h2>
+                <p>
+                  This graph plan refines the visualization only. It does not override the statistical design or model recommendation.
+                </p>
+                <GraphPlanCard spec={graphSpec} />
+              </section>
+            ) : null}
             <RecommendationCard
               currentTableShape={profile.tableShape}
               onConvert={() => void convertTable()}
@@ -356,6 +479,16 @@ export function StatNavigatorApp() {
               <div className="statnav-card"><h3>Draft Methods</h3><p>{analysis.methodsText}</p></div>
               <div className="statnav-card statnav-full"><h3>Draft Results</h3><p>{analysis.resultsText}</p></div>
             </section>
+            {selectedOutputs.includes("graph") && graphSpec ? (
+              <section className="statnav-card statnav-planned-graphs-card">
+                <p className="statnav-kicker">Planned Graphs</p>
+                <h2>Graph plan used for this result</h2>
+                <p>
+                  The generated MVP graph may be simpler than this plan, but this is the graph structure the assistant understood from your request.
+                </p>
+                <GraphPlanCard spec={graphSpec} />
+              </section>
+            ) : null}
             {analysis.graphDownload ? (
               <section className="statnav-card">
                 <div className="statnav-card-head">
