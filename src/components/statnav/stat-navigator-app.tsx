@@ -56,10 +56,6 @@ function safeCell(value: string | number | null): string {
   return String(value);
 }
 
-function StepPill({ active, children }: { active: boolean; children: React.ReactNode }) {
-  return <span className={active ? "statnav-step-pill is-active" : "statnav-step-pill"}>{children}</span>;
-}
-
 function PreviewTable({ profile }: { profile: TableProfile }) {
   return (
     <details className="statnav-card statnav-preview-details">
@@ -348,12 +344,6 @@ export function StatNavigatorApp() {
       <header className="statnav-hero statnav-hero-compact">
         <nav className="statnav-topbar" aria-label="Statistics Navigator workflow">
           <a href="/" className="statnav-brand"><span>Statistics Navigator</span></a>
-          <div className="statnav-stepper">
-            <StepPill active={step === "start" || step === "intake"}>Upload</StepPill>
-            <StepPill active={step === "intake" && Boolean(profile)}>Describe</StepPill>
-            <StepPill active={step === "recommendation"}>Recommendation</StepPill>
-            <StepPill active={step === "results"}>Results</StepPill>
-          </div>
         </nav>
         <section className="statnav-hero-copy statnav-hero-copy-wide">
           <p className="statnav-kicker">Chat-guided statistics for lab people</p>
@@ -381,14 +371,6 @@ export function StatNavigatorApp() {
       <main className="statnav-main">
         {status ? <div className="statnav-status">{status}</div> : null}
         {error ? <div className="statnav-error">{error}</div> : null}
-
-        {step === "start" ? (
-          <section className="statnav-grid three">
-            <article className="statnav-card"><span className="statnav-number">1</span><h3>Upload a table</h3><p>CSV or modern XLSX. I’ll summarize the rows, columns, likely measurements, groups, and IDs.</p></article>
-            <article className="statnav-card"><span className="statnav-number">2</span><h3>Describe the experiment</h3><p>Use ordinary language. No need to know words like paired, interaction, or non-parametric.</p></article>
-            <article className="statnav-card"><span className="statnav-number">3</span><h3>Answer one detail</h3><p>If something matters for independence, I’ll ask one targeted question before recommending a model.</p></article>
-          </section>
-        ) : null}
 
         {step === "intake" && profile ? (
           <section className="statnav-section statnav-chat-flow">
