@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
-import type { TableProfile } from "@/lib/statnav/types";
-import { runStatnavBackend, saveUploadedDataset } from "@/lib/statnav/server-files";
+import { saveUploadedDataset } from "@/lib/statnav/server-files";
+import { profileTableBytes } from "@/lib/statnav/table-profiler";
 
 export const runtime = "nodejs";
 
@@ -14,15 +14,8 @@ export async function GET() {
     const bytes = await readFile(examplePath).catch(() => readFile(fallbackPath));
     const datasetId = randomUUID();
     const fileName = "mouse_activity_lmm_long_format.csv";
-    const storedPath = await saveUploadedDataset(datasetId, fileName, bytes);
-    const profile = await runStatnavBackend<TableProfile>([
-      "profile",
-      storedPath,
-      "--dataset-id",
-      datasetId,
-      "--original-name",
-      fileName
-    ]);
+    await saveUploadedDataset(datasetId, fileName, bytes);
+    const profile = await profileTableBytes(bytes, datasetId, fileName);
 
     return NextResponse.json({ profile });
   } catch (error) {

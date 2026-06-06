@@ -83,11 +83,13 @@ R backend expects:
 
 ## Deployment Note
 
-Vercel supports Python as a dedicated Vercel Functions runtime, but this MVP
-currently runs Python by spawning a local executable from a Node.js API route.
-That is suitable for local development and a traditional server, but for a
-reliable Vercel deployment the Python/R analysis work should be moved to a
-separate backend/API or rewritten as Python Vercel Functions.
+Vercel supports Python as a dedicated Vercel Functions runtime. The upload and
+table-profiling routes are implemented in Node.js so the live site can accept
+CSV/XLSX files without spawning Python. The conversion and analysis runners
+still call the local Python/R helper scripts, so those parts are suitable for
+local development or a traditional server. For a production Vercel deployment,
+move the Python/R analysis work to a separate backend/API or rewrite it as
+Python Vercel Functions.
 
 ## Documentation
 

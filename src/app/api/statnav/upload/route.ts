@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { NextResponse } from "next/server";
-import type { TableProfile } from "@/lib/statnav/types";
-import { runStatnavBackend, saveUploadedDataset } from "@/lib/statnav/server-files";
+import { saveUploadedDataset } from "@/lib/statnav/server-files";
+import { profileTableBytes } from "@/lib/statnav/table-profiler";
 
 export const runtime = "nodejs";
 
@@ -47,15 +47,8 @@ export async function POST(request: Request) {
 
     const datasetId = randomUUID();
     const bytes = Buffer.from(await file.arrayBuffer());
-    const storedPath = await saveUploadedDataset(datasetId, file.name, bytes);
-    const profile = await runStatnavBackend<TableProfile>([
-      "profile",
-      storedPath,
-      "--dataset-id",
-      datasetId,
-      "--original-name",
-      file.name
-    ]);
+    await saveUploadedDataset(datasetId, file.name, bytes);
+    const profile = await profileTableBytes(bytes, datasetId, file.name);
 
     return NextResponse.json({ profile });
   } catch (error) {

@@ -68,12 +68,14 @@ saved/exported as `.xlsx` or CSV before upload.
 
 ## Deployment Caveat
 
-Vercel supports Python as its own Vercel Functions runtime. The current MVP,
-however, uses a Node.js API route that spawns Python/R helper scripts. That
-mixed local-process architecture is best treated as local/traditional-server
-MVP behavior. For the live Vercel app, the production-safe path is to move
-profiling/analysis into Python Vercel Functions or a separate FastAPI/R backend
-and have the Next.js frontend call that API.
+Vercel supports Python as its own Vercel Functions runtime. Upload and
+table profiling now run in Node.js, so the live Vercel site can accept CSV/XLSX
+files without spawning Python. The current conversion and analysis runners still
+spawn Python/R helper scripts from Node.js, so that mixed local-process
+architecture is best treated as local/traditional-server MVP behavior. For the
+live Vercel app, the production-safe path is to move conversion/analysis into
+Python Vercel Functions or a separate FastAPI/R backend and have the Next.js
+frontend call that API.
 
 ## Example Dataset
 
