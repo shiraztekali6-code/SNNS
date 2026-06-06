@@ -107,6 +107,50 @@ export type QuestionnaireAnswers = {
   notes?: string;
 };
 
+export type ExperimentDesign = {
+  measurementColumn?: string;
+  groupColumn?: string;
+  timeColumn?: string;
+  subjectIdColumn?: string;
+  repeatedMeasures?: "yes" | "no" | "unsure";
+  replicateType?: ReplicateType;
+  researchGoal?: ResearchGoal;
+  userQuestion?: string;
+  statisticalQuestion?: string;
+  likelyModel?: string;
+  requiredTableFormat?: TableShape;
+  warnings: string[];
+  confidence: "high" | "medium" | "low";
+  source: "profile" | "chat" | "follow_up" | "advanced";
+};
+
+export type AssistantInterpretation = {
+  summary: string;
+  statisticalQuestion: string;
+  likelyAnalysisGoal: string;
+  likelyModel?: string;
+  detected: {
+    measurement?: string;
+    group?: string;
+    time?: string;
+    subject?: string;
+  };
+  assumptions: string[];
+  warnings: string[];
+  confidence: "high" | "medium" | "low";
+};
+
+export type FollowUpQuestion = {
+  id: string;
+  question: string;
+  whyItMatters: string;
+  options: Array<{
+    label: string;
+    value: string;
+    effect: Partial<ExperimentDesign>;
+  }>;
+};
+
 export type RecommendationEngineInput = {
   profile: TableProfile;
   answers: QuestionnaireAnswers;

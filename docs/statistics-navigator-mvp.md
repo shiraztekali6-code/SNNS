@@ -90,7 +90,9 @@ The app explains that:
 - Upload CSV/XLSX through `/api/statnav/upload`.
 - Preview table, row/column counts, column names, missing values, duplicated rows, and detected column types.
 - Data profiler detects likely numeric outcomes, categorical/binary variables, ID-like columns, subject/sample/cage IDs, time/session columns, group/treatment columns, count-like variables, wide vs long structure, and repeated measures.
-- Guided questionnaire maps outcome, group, second factor, predictor, repeated unit, time/session, paired/independent design, replicate type, research goal, non-parametric preference, desired outputs, and notes.
+- Default chat-guided intake asks the user to describe the experiment in free text and infers a structured design from the table profile plus that description.
+- Targeted follow-up engine asks only missing safety-critical questions, such as whether repeated cage/sample IDs are independent biological replicates or technical splits.
+- Advanced mode keeps manual design definition available without making it the default path.
 - Rule-based recommendation engine supports MVP recommendations for t-tests, ANOVA, mixed models, regression, categorical tests, and non-parametric alternatives as guidance.
 - Analysis execution currently supports:
   - Welch unpaired t-test
@@ -108,6 +110,53 @@ The app explains that:
   - Contingency bar plot
 - Table conversion helper supports wide-to-long and long-to-wide where enough column mapping exists.
 - Results page includes statistical tables, graph, warnings, interpretation, Methods text, Results text, and downloadable CSV/XLSX/PNG outputs.
+
+## Chat-Guided Flow
+
+1. Upload a CSV/XLSX table or load the mouse activity example.
+2. Read the plain-language data summary.
+3. In the chat box, describe the experiment in normal lab language.
+4. Review the assistant interpretation card.
+5. Answer one follow-up question if the design is still unsafe to recommend.
+6. Review the recommendation card and run the analysis if supported.
+
+Example description:
+
+```text
+I measured mouse movement every 12 hours in MIX, R837, and RU521 groups. Each group has two cages. I want to know if the treatment changed movement over time.
+```
+
+Expected follow-up:
+
+```text
+Are the cage_id values independent biological replicates, or technical splits of the same group?
+```
+
+If the user selects independent replicates, the app recommends:
+
+```text
+Longitudinal Linear Mixed-Effects Model
+movement_mean_per_12h ~ group * session_number + (1 | cage_id)
+```
+
+If the user selects technical splits, the app recommends combining technical replicates first before treatment testing.
+
+## Rule-Based vs Assistant-Like Parts
+
+Rule-based:
+
+- `scripts/statnav_backend.py` table profiling, conversion, graphing, and Python-side tests.
+- `scripts/statnav_r_analysis.R` ANOVA and mixed-effects model execution.
+- `src/lib/statnav/followup_question_engine.ts` targeted missing-question logic.
+- `src/lib/statnav/statistical_decision_engine.ts` final recommendation guardrails, including technical replicate handling.
+- `src/lib/statnav/recommendation-engine.ts` statistical recommendation rules.
+
+Assistant-like placeholder:
+
+- `src/lib/statnav/experiment_interpreter.ts` uses deterministic text/profile heuristics to mimic an AI/statistics assistant. It does not call an LLM yet.
+- The interpretation card explains the inferred design in friendly language.
+
+To add real AI later, replace or augment `interpretExperimentDescription()` with an LLM call that returns the same `ExperimentDesign` shape, then compare the AI output against the rule-based decision engine instead of silently overriding it.
 
 ## Outputs
 
